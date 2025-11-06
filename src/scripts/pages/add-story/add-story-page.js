@@ -89,7 +89,7 @@ export default class AddStoryPage {
     this.#submitButton = document.querySelector("#submit-button");
     this.#formMessage = document.querySelector("#form-message");
 
-    // Initialize IndexedDB
+    
     try {
       await indexedDBService.init();
     } catch (error) {
@@ -263,14 +263,14 @@ export default class AddStoryPage {
           await ApiService.addNewStory({ description, photo, lat, lon });
           this.#showMessage("success", "Cerita berhasil ditambahkan!");
         } catch (error) {
-          // Handle offline mode
+          
           if (error.message === "OFFLINE_MODE" || !navigator.onLine) {
-            // Convert photo to base64 for storage
+            
             const photoBase64 = await this.#blobToBase64(photo);
             const photoName =
               photo instanceof File ? photo.name : "camera-capture.jpg";
 
-            // Queue for sync
+            
             await syncService.queueStoryForSync({
               description,
               photo: photoBase64,
@@ -337,14 +337,12 @@ export default class AddStoryPage {
     return isDescValid && isPhotoValid && isLatValid && isLonValid;
   }
 
-  /**
-   * Convert Blob to Base64 string
-   */
+  
   async #blobToBase64(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result.split(",")[1]; // Remove data:image/...;base64, prefix
+        const base64String = reader.result.split(",")[1]; 
         resolve(base64String);
       };
       reader.onerror = reject;

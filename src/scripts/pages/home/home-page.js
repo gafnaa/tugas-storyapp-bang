@@ -63,7 +63,7 @@ export default class HomePage {
   }
 
   async afterRender() {
-    // Ensure DOM is ready
+    
     if (document.readyState !== 'complete') {
       await new Promise(resolve => {
         if (document.readyState === 'complete') {
@@ -74,12 +74,12 @@ export default class HomePage {
       });
     }
     
-    // Initialize IndexedDB first
+    
     try {
       await indexedDBService.init();
       console.log('IndexedDB initialized successfully');
       
-      // Clean up any existing duplicates on first load
+      
       try {
         const cleanupResult = await indexedDBService.cleanupDuplicates();
         if (cleanupResult.removed > 0) {
@@ -90,7 +90,7 @@ export default class HomePage {
       }
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
-      // Don't show alert, just log - IndexedDB might not be critical for basic functionality
+      
     }
 
     const presenter = new HomePagePresenter({
@@ -98,36 +98,36 @@ export default class HomePage {
       model: ApiService,
     });
     
-    this.currentView = 'all'; // 'all' or 'saved'
+    this.currentView = 'all'; 
     this.currentStories = [];
-    this._indexedDBControlsSetup = false; // Reset setup flag
-    this.presenter = presenter; // Store presenter reference
+    this._indexedDBControlsSetup = false; 
+    this.presenter = presenter; 
     
     await presenter.init();
     
-    // Setup load more button
+    
     this.setupLoadMoreButton();
     
-    // Setup push notification toggle
+    
     await this.setupPushNotificationToggle();
     
-    // Setup IndexedDB controls (must be after presenter.init and DOM ready)
-    // Wait a bit for stories to render first
+    
+    
     await new Promise(resolve => setTimeout(resolve, 150));
     await this.setupIndexedDBControls();
     
-    // Check if we need to highlight a story from notification
+    
     this.checkAndHighlightStory();
   }
   
   async setupIndexedDBControls() {
-    // Check if already set up to avoid duplicate setup
+    
     if (this._indexedDBControlsSetup) {
       console.log('IndexedDB controls already set up, skipping...');
       return;
     }
     
-    // Wait for DOM to be fully ready
+    
     await new Promise(resolve => {
       if (document.readyState === 'complete') {
         resolve();
@@ -136,17 +136,17 @@ export default class HomePage {
       }
     });
     
-    // Additional small delay to ensure all elements are rendered
+    
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    // Retry mechanism with multiple attempts
+    
     let attempts = 0;
     const maxAttempts = 5;
     
     const trySetup = async () => {
       attempts++;
       
-      // Toggle view button
+      
       const toggleViewBtn = document.querySelector('#toggle-view-btn');
       const toggleViewText = document.querySelector('#toggle-view-text');
       const filterControls = document.querySelector('#filter-controls');
@@ -184,7 +184,7 @@ export default class HomePage {
   }
   
   setupButtonHandlers(toggleViewBtn, toggleViewText, filterControls) {
-    // Make sure button is visible with multiple methods
+    
     toggleViewBtn.style.display = 'inline-block';
     toggleViewBtn.style.visibility = 'visible';
     toggleViewBtn.style.opacity = '1';
@@ -192,7 +192,7 @@ export default class HomePage {
     toggleViewBtn.style.height = 'auto';
     toggleViewBtn.removeAttribute('hidden');
     
-    // Remove any existing listeners
+    
     const newBtn = toggleViewBtn.cloneNode(true);
     toggleViewBtn.parentNode.replaceChild(newBtn, toggleViewBtn);
     const btn = newBtn;
@@ -202,7 +202,7 @@ export default class HomePage {
       e.stopPropagation();
       console.log('Toggle view clicked, current view:', this.currentView);
       
-      // Use view transition if available
+      
       const performTransition = async () => {
         if (this.currentView === 'all') {
           this.currentView = 'saved';
@@ -217,7 +217,7 @@ export default class HomePage {
           if (filterControls) {
             filterControls.style.display = 'none';
           }
-          // Reload all stories
+          
           const presenter = new HomePagePresenter({
             view: this,
             model: ApiService,
@@ -241,7 +241,7 @@ export default class HomePage {
       }
     });
     
-    // Setup filter controls
+    
     const searchInput = document.querySelector('#search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -249,7 +249,7 @@ export default class HomePage {
       });
     }
     
-    // Sort select
+    
     const sortSelect = document.querySelector('#sort-select');
     if (sortSelect) {
       sortSelect.addEventListener('change', () => {
@@ -257,7 +257,7 @@ export default class HomePage {
       });
     }
     
-    // Filter date
+    
     const filterDate = document.querySelector('#filter-date');
     if (filterDate) {
       filterDate.addEventListener('change', () => {
@@ -265,7 +265,7 @@ export default class HomePage {
       });
     }
     
-    // Clear filters button
+    
     const clearFiltersBtn = document.querySelector('#clear-filters-btn');
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener('click', () => {
@@ -319,10 +319,10 @@ export default class HomePage {
     if (this.currentView !== 'saved') return;
     
     try {
-      // Start from the current unique stories, not from IndexedDB again
+      
       let filtered = [...this.currentStories];
       
-      // Deduplicate again before filtering
+      
       const seenIds = new Set();
       filtered = filtered.filter(story => {
         if (story && story.id && !seenIds.has(story.id)) {
@@ -332,13 +332,13 @@ export default class HomePage {
         return false;
       });
       
-      // Apply search
+      
       const searchInput = document.querySelector('#search-input');
       if (searchInput && searchInput.value) {
         filtered = indexedDBService.searchStories(filtered, searchInput.value);
       }
       
-      // Apply date filter
+      
       const filterDate = document.querySelector('#filter-date');
       if (filterDate && filterDate.value) {
         filtered = indexedDBService.filterStories(filtered, {
@@ -346,7 +346,7 @@ export default class HomePage {
         });
       }
       
-      // Apply sort
+      
       const sortSelect = document.querySelector('#sort-select');
       if (sortSelect) {
         const [sortBy, order] = sortSelect.value.split('-');
@@ -366,7 +366,7 @@ export default class HomePage {
     
     if (!toggleButton) return;
     
-    // Check if push notifications are supported
+    
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
       toggleButton.style.display = "none";
       return;
@@ -374,22 +374,22 @@ export default class HomePage {
     
     toggleButton.style.display = "inline-block";
     
-    // Update button state
+    
     await this.updateToggleButtonState();
     
-    // Add click handler
+    
     toggleButton.addEventListener("click", async () => {
       try {
         const isSubscribed = await PushNotificationService.isSubscribed();
         
         if (isSubscribed) {
-          // Unsubscribe
+          
           await PushNotificationService.unsubscribe();
           await this.updateToggleButtonState();
           alert("Notifikasi push telah dinonaktifkan");
         } else {
-          // Subscribe
-          // Disable button during subscription
+          
+          
           const originalText = toggleText.textContent;
           toggleButton.disabled = true;
           toggleText.textContent = "Memproses...";
@@ -399,18 +399,18 @@ export default class HomePage {
             await this.updateToggleButtonState();
             alert("Notifikasi push telah diaktifkan");
           } catch (subscribeError) {
-            // Re-throw to be caught by outer catch
+            
             throw subscribeError;
           } finally {
             toggleButton.disabled = false;
-            // Update button state will restore text if needed
+            
             await this.updateToggleButtonState();
           }
         }
       } catch (error) {
         console.error("Error toggling push notification:", error);
         
-        // Provide user-friendly error messages
+        
         let errorMessage = "Gagal mengaktifkan notifikasi";
         if (error.message) {
           if (error.message.includes("ditolak")) {
@@ -454,10 +454,10 @@ export default class HomePage {
   checkAndHighlightStory() {
     const highlightStoryId = sessionStorage.getItem("highlightStoryId");
     if (highlightStoryId) {
-      // Remove from sessionStorage
+      
       sessionStorage.removeItem("highlightStoryId");
       
-      // Wait a bit for stories to load, then highlight
+      
       setTimeout(() => {
         const storyItems = document.querySelectorAll(".story-item");
         storyItems.forEach((item) => {
@@ -466,7 +466,7 @@ export default class HomePage {
             item.classList.add("highlighted");
             item.scrollIntoView({ behavior: "smooth", block: "center" });
             
-            // Remove highlight after 3 seconds
+            
             setTimeout(() => {
               item.classList.remove("highlighted");
             }, 3000);
@@ -488,7 +488,7 @@ export default class HomePage {
       return;
     }
 
-    // Deduplicate items before displaying (extra safety)
+    
     const uniqueItems = [];
     const seenIds = new Set();
     for (const item of items) {
@@ -515,7 +515,7 @@ export default class HomePage {
       storyItem.className = "story-item";
       storyItem.dataset.storyId = story.id;
       
-      // Check if story is saved (with error handling)
+      
       let isSaved = false;
       try {
         isSaved = await indexedDBService.isStorySaved(story.id);
@@ -596,7 +596,7 @@ export default class HomePage {
     
     console.log(`appendItems: received ${items.length} items, appending ${uniqueItems.length} unique items`);
 
-    // Ensure IndexedDB is initialized
+    
     try {
       await indexedDBService.ensureDB();
     } catch (error) {
@@ -608,7 +608,7 @@ export default class HomePage {
       storyItem.className = "story-item";
       storyItem.dataset.storyId = story.id;
       
-      // Check if story is saved (with error handling)
+      
       let isSaved = false;
       try {
         isSaved = await indexedDBService.isStorySaved(story.id);
@@ -716,17 +716,17 @@ export default class HomePage {
         console.log(`Deleted story ${story.id} from IndexedDB`);
         alert('Cerita dihapus dari tersimpan');
       } else {
-        // Save to IndexedDB (will update if exists, add if new)
+        
         await indexedDBService.saveStory(story);
         console.log(`Saved story ${story.id} to IndexedDB`);
         alert('Cerita disimpan ke tersimpan');
       }
       
-      // Refresh the view
+      
       if (this.currentView === 'saved') {
         await this.showSavedStories();
       } else {
-        // Update button state in current view
+        
         const presenter = new HomePagePresenter({
           view: this,
           model: ApiService,

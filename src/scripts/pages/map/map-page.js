@@ -21,8 +21,8 @@ export default class MapPage {
   }
 
   async afterRender() {
-    // Get story ID from URL query parameter
-    // URL format: #/map?story=story-id
+    
+    
     const hash = window.location.hash;
     let storyId = null;
     
@@ -116,13 +116,13 @@ export default class MapPage {
       const lat = marker.getLatLng().lat;
       const lon = marker.getLatLng().lng;
       
-      // Center map on story location with zoom level 15
+      
       this.#map.setView([lat, lon], 15);
       
-      // Open popup
+      
       marker.openPopup();
       
-      // Highlight list item
+      
       this.#highlightListItem(storyId);
     } else {
       console.warn(`Story with ID ${storyId} not found on map. It may not have location data.`);

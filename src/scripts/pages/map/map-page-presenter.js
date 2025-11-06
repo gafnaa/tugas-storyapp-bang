@@ -20,9 +20,9 @@ export default class MapPagePresenter {
         this.#view.addMarkerToMap(story);
       });
       
-      // If targetStoryId is provided, focus on that story
+      
       if (targetStoryId) {
-        // Wait a bit for map and markers to be fully initialized
+        
         setTimeout(() => {
           this.#view.focusOnStory(targetStoryId);
         }, 500);

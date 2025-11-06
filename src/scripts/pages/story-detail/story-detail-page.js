@@ -20,7 +20,7 @@ export default class StoryDetailPage {
   }
 
   async afterRender() {
-    // Get story ID from URL
+    
     const url = window.location.hash;
     const storyIdMatch = url.match(/\/story\/([^\/]+)/);
     
@@ -31,7 +31,7 @@ export default class StoryDetailPage {
 
     const storyId = storyIdMatch[1];
     
-    // Try to get from IndexedDB first (for offline support)
+    
     let story = null;
     try {
       await indexedDBService.ensureDB();
@@ -40,11 +40,11 @@ export default class StoryDetailPage {
       console.log("Story not found in IndexedDB, fetching from API");
     }
 
-    // If not in IndexedDB, fetch from API
+    
     if (!story) {
       try {
         story = await ApiService.getStoryDetail(storyId);
-        // Save to IndexedDB for offline access
+        
         try {
           await indexedDBService.saveStory(story);
         } catch (saveError) {
@@ -105,12 +105,12 @@ export default class StoryDetailPage {
       </div>
     `;
 
-    // Setup save button (async)
+    
     this.setupSaveButton(story).catch(err => {
       console.error("Error setting up save button:", err);
     });
     
-    // Setup map link handler
+    
     this.setupMapLink();
   }
   
@@ -118,9 +118,10 @@ export default class StoryDetailPage {
     const mapLink = document.querySelector('#map-link');
     if (mapLink) {
       mapLink.addEventListener('click', (e) => {
-        // Let the browser handle navigation naturally
-        // Don't prevent default - let hash routing work
-        console.log('Navigating to map:', mapLink.getAttribute('href'));
+        e.preventDefault();
+        e.stopPropagation();
+        const href = mapLink.getAttribute('href') || '#/map';
+        window.location.hash = href;
       });
     }
   }

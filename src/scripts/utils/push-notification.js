@@ -42,7 +42,7 @@ class PushNotificationService {
         scope: "/",
       });
 
-      // Wait for service worker to be ready
+      
       await navigator.serviceWorker.ready;
       return registration;
     } catch (error) {
@@ -52,7 +52,7 @@ class PushNotificationService {
 
   static async subscribe() {
     try {
-      // Check if push manager is supported
+      
       if (!("serviceWorker" in navigator)) {
         throw new Error("Service Worker tidak didukung di browser ini");
       }
@@ -61,24 +61,24 @@ class PushNotificationService {
         throw new Error("Push Notification tidak didukung di browser ini");
       }
 
-      // Request permission
+      
       await this.requestPermission();
 
-      // Register service worker
+      
       const registration = await this.registerServiceWorker();
 
-      // Wait for service worker to be ready
+      
       await navigator.serviceWorker.ready;
 
-      // Check if push manager is available
+      
       if (!registration.pushManager) {
         throw new Error("Push Manager tidak tersedia");
       }
 
-      // Get existing subscription
+      
       let subscription = await registration.pushManager.getSubscription();
 
-      // If no subscription, create new one
+      
       if (!subscription) {
         const vapidPublicKey = CONFIG.VAPID_PUBLIC_KEY;
         
@@ -96,7 +96,7 @@ class PushNotificationService {
         } catch (pushError) {
           console.error("Push subscription error:", pushError);
           
-          // Provide more specific error messages
+          
           if (pushError.name === "NotAllowedError") {
             throw new Error("Izin push notification ditolak. Silakan aktifkan di pengaturan browser.");
           } else if (pushError.name === "InvalidStateError") {
@@ -109,7 +109,7 @@ class PushNotificationService {
         }
       }
 
-      // Extract subscription data
+      
       const subscriptionData = {
         endpoint: subscription.endpoint,
         keys: {
@@ -118,7 +118,7 @@ class PushNotificationService {
         },
       };
 
-      // Send subscription to server
+      
       try {
         await ApiService.subscribePushNotification({
           endpoint: subscriptionData.endpoint,
@@ -127,7 +127,7 @@ class PushNotificationService {
           auth: subscriptionData.keys.auth,
         });
       } catch (apiError) {
-        // If API fails, unsubscribe from push manager
+        
         try {
           await subscription.unsubscribe();
         } catch (unsubError) {
@@ -136,7 +136,7 @@ class PushNotificationService {
         throw new Error(`Gagal mengirim subscription ke server: ${apiError.message}`);
       }
 
-      // Store endpoint in localStorage
+      
       localStorage.setItem(STORAGE_KEY, subscriptionData.endpoint);
 
       return subscription;
@@ -157,13 +157,13 @@ class PushNotificationService {
 
       const endpoint = subscription.endpoint;
 
-      // Unsubscribe from server
+      
       await ApiService.unsubscribePushNotification(endpoint);
 
-      // Unsubscribe from push manager
+      
       await subscription.unsubscribe();
 
-      // Remove from localStorage
+      
       localStorage.removeItem(STORAGE_KEY);
 
       return true;

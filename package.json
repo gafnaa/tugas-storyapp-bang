@@ -9,6 +9,21 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "globby": "^15.0.0",
+    "strip-comments": "^2.0.1",
     "vite": "^6.2.0"
-  }
+  },
+  "main": "vite.config.js",
+  "dependencies": {
+    "esbuild": "^0.25.0",
+    "nanoid": "^3.3.8",
+    "picocolors": "^1.1.1",
+    "postcss": "^8.5.3",
+    "rollup": "^4.34.8",
+    "source-map-js": "^1.2.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

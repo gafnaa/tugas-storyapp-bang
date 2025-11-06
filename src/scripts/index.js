@@ -4,7 +4,7 @@ import App from "./pages/app";
 import PushNotificationService from "./utils/push-notification";
 import syncService from "./utils/sync-service";
 
-// Register service worker
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
@@ -16,18 +16,18 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// Handle PWA install prompt
+
 let deferredPrompt = null;
 
 window.addEventListener("beforeinstallprompt", (e) => {
-  // Prevent the mini-infobar from appearing on mobile
+  
   e.preventDefault();
-  // Stash the event so it can be triggered later
+  
   deferredPrompt = e;
   console.log("PWA install prompt available");
   
-  // Optional: Show custom install button/UI
-  // You can create a custom install button here if needed
+  
+  
   const installButton = document.createElement("button");
   installButton.textContent = "Install App";
   installButton.style.cssText = `
@@ -50,26 +50,26 @@ window.addEventListener("beforeinstallprompt", (e) => {
   installButton.addEventListener("click", async () => {
     if (!deferredPrompt) return;
     
-    // Show the install prompt
+    
     deferredPrompt.prompt();
     
-    // Wait for the user to respond to the prompt
+    
     const { outcome } = await deferredPrompt.userChoice;
     
     console.log(`User response to install prompt: ${outcome}`);
     
-    // Clear the deferredPrompt
+    
     deferredPrompt = null;
     
-    // Hide the install button
+    
     installButton.style.display = "none";
   });
   
-  // Show the install button
+  
   installButton.style.display = "block";
   document.body.appendChild(installButton);
   
-  // Hide the button after installation
+  
   window.addEventListener("appinstalled", () => {
     console.log("PWA installed");
     deferredPrompt = null;
@@ -77,20 +77,20 @@ window.addEventListener("beforeinstallprompt", (e) => {
   });
 });
 
-// Track when app is installed
+
 window.addEventListener("appinstalled", () => {
   console.log("PWA installed successfully");
   deferredPrompt = null;
 });
 
-// Handle messages from service worker (for notification clicks)
+
 if ("serviceWorker" in navigator) {
-  // Listen for messages from service worker
+  
   const handleServiceWorkerMessage = (event) => {
     if (event.data && event.data.type === "SHOW_STORY_DETAIL") {
       const storyId = event.data.storyId;
       if (storyId) {
-        // Navigate to home page and store story ID for highlighting
+        
         if (window.location.hash !== "#/") {
           window.location.hash = "#/";
         }
@@ -99,19 +99,19 @@ if ("serviceWorker" in navigator) {
     }
   };
   
-  // Listen via controller if available (most common way)
+  
   if (navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.addEventListener("message", handleServiceWorkerMessage);
   }
   
-  // Also set up listener for when controller becomes available
+  
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.addEventListener("message", handleServiceWorkerMessage);
     }
   });
   
-  // Fallback: listen on serviceWorker container itself
+  
   navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
 }
 

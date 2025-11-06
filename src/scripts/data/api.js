@@ -78,7 +78,7 @@ class ApiService {
     const token = getAuthToken();
     if (!token) throw new Error("No auth token found. Please login.");
 
-    // Check if offline
+    
     if (!navigator.onLine) {
       throw new Error("OFFLINE_MODE");
     }

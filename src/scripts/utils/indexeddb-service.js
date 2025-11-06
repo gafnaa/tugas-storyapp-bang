@@ -1,10 +1,7 @@
-/**
- * IndexedDB Service for Stories Management
- * Handles CRUD operations for stories in IndexedDB
- */
+
 
 const DB_NAME = 'StoryAppDB';
-const DB_VERSION = 2; // Increment version to trigger cleanup
+const DB_VERSION = 2; 
 const STORE_NAME = 'stories';
 const SYNC_STORE_NAME = 'syncQueue';
 
@@ -13,9 +10,7 @@ class IndexedDBService {
     this.db = null;
   }
 
-  /**
-   * Initialize IndexedDB
-   */
+  
   async init() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -33,7 +28,7 @@ class IndexedDBService {
         const db = event.target.result;
         const oldVersion = event.oldVersion;
 
-        // Create stories store
+        
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const storyStore = db.createObjectStore(STORE_NAME, {
             keyPath: 'id',
@@ -45,9 +40,9 @@ class IndexedDBService {
           });
         }
         
-        // If upgrading from version 1, cleanup duplicates will be handled by cleanupDuplicates()
+        
 
-        // Create sync queue store for offline data
+        
         if (!db.objectStoreNames.contains(SYNC_STORE_NAME)) {
           const syncStore = db.createObjectStore(SYNC_STORE_NAME, {
             keyPath: 'id',
@@ -60,9 +55,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * Ensure DB is initialized
-   */
+  
   async ensureDB() {
     if (!this.db) {
       await this.init();
@@ -70,13 +63,11 @@ class IndexedDBService {
     return this.db;
   }
 
-  /**
-   * CREATE: Save a story to IndexedDB (prevents duplicates)
-   */
+  
   async saveStory(story) {
     await this.ensureDB();
 
-    // Validate story has an ID
+    
     if (!story || !story.id) {
       return Promise.reject(new Error('Story must have an ID'));
     }
@@ -85,20 +76,20 @@ class IndexedDBService {
       const transaction = this.db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       
-      // First check if story already exists
+      
       const checkRequest = store.get(story.id);
       
       checkRequest.onsuccess = () => {
         const existingStory = checkRequest.result;
         
         if (existingStory) {
-          // Story already exists, just update it
+          
           console.log(`Story ${story.id} already exists, updating...`);
         } else {
           console.log(`Saving new story ${story.id} to IndexedDB`);
         }
         
-        // Use put() which will replace if exists or add if new (based on keyPath: 'id')
+        
         const putRequest = store.put(story);
         
         putRequest.onsuccess = () => {
@@ -111,7 +102,7 @@ class IndexedDBService {
       };
       
       checkRequest.onerror = () => {
-        // If check fails, still try to save
+        
         const putRequest = store.put(story);
         
         putRequest.onsuccess = () => {
@@ -125,9 +116,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * READ: Get all stories from IndexedDB (with deduplication)
-   */
+  
   async getAllStories() {
     await this.ensureDB();
 
@@ -139,7 +128,7 @@ class IndexedDBService {
       request.onsuccess = () => {
         const stories = request.result || [];
         
-        // Remove duplicates based on ID
+        
         const uniqueStories = [];
         const seenIds = new Set();
         
@@ -160,9 +149,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * READ: Get a single story by ID
-   */
+  
   async getStoryById(id) {
     await this.ensureDB();
 
@@ -181,9 +168,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * DELETE: Remove a story from IndexedDB
-   */
+  
   async deleteStory(id) {
     await this.ensureDB();
 
@@ -202,17 +187,13 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * Check if story exists in IndexedDB
-   */
+  
   async isStorySaved(id) {
     const story = await this.getStoryById(id);
     return !!story;
   }
 
-  /**
-   * SYNC: Add story to sync queue (for offline creation)
-   */
+  
   async addToSyncQueue(action, data) {
     await this.ensureDB();
 
@@ -220,7 +201,7 @@ class IndexedDBService {
       const transaction = this.db.transaction([SYNC_STORE_NAME], 'readwrite');
       const store = transaction.objectStore(SYNC_STORE_NAME);
       const syncItem = {
-        action, // 'create', 'update', 'delete'
+        action, 
         data,
         timestamp: Date.now(),
         synced: false,
@@ -237,9 +218,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * SYNC: Get all pending sync items
-   */
+  
   async getSyncQueue() {
     await this.ensureDB();
 
@@ -251,7 +230,7 @@ class IndexedDBService {
 
       request.onsuccess = () => {
         const items = request.result || [];
-        // Filter only unsynced items
+        
         const pending = items.filter((item) => !item.synced);
         resolve(pending);
       };
@@ -262,9 +241,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * SYNC: Mark sync item as synced
-   */
+  
   async markSynced(id) {
     await this.ensureDB();
 
@@ -291,9 +268,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * SYNC: Remove synced items from queue
-   */
+  
   async clearSyncedItems() {
     await this.ensureDB();
 
@@ -321,9 +296,7 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * Filter stories by search term (works with array)
-   */
+  
   searchStories(stories, searchTerm) {
     if (!searchTerm) return stories;
 
@@ -335,9 +308,7 @@ class IndexedDBService {
     );
   }
 
-  /**
-   * Sort stories (works with array)
-   */
+  
   sortStories(stories, sortBy = 'createdAt', order = 'desc') {
     const sorted = [...stories];
 
@@ -345,13 +316,13 @@ class IndexedDBService {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
 
-      // Handle date sorting
+      
       if (sortBy === 'createdAt') {
         aVal = new Date(aVal).getTime();
         bVal = new Date(bVal).getTime();
       }
 
-      // Handle string sorting
+      
       if (typeof aVal === 'string') {
         aVal = aVal.toLowerCase();
         bVal = bVal.toLowerCase();
@@ -367,11 +338,7 @@ class IndexedDBService {
     return sorted;
   }
 
-  /**
-   * Clean up duplicate stories from IndexedDB
-   * Since IndexedDB uses keyPath: 'id', duplicates shouldn't exist,
-   * but this function handles edge cases and ensures data integrity
-   */
+  
   async cleanupDuplicates() {
     await this.ensureDB();
 
@@ -383,7 +350,7 @@ class IndexedDBService {
       getAllRequest.onsuccess = () => {
         const stories = getAllRequest.result || [];
         
-        // Group stories by ID to find duplicates
+        
         const storiesById = new Map();
         
         for (const story of stories) {
@@ -395,15 +362,15 @@ class IndexedDBService {
           }
         }
 
-        // Find IDs with multiple entries (shouldn't happen with keyPath, but handle it)
+        
         const duplicates = [];
         for (const [id, storyList] of storiesById.entries()) {
           if (storyList.length > 1) {
             duplicates.push({ id, count: storyList.length });
-            // Keep the first one, mark others for deletion
-            // Since IndexedDB uses keyPath, we'll just re-save the first one
+            
+            
             const firstStory = storyList[0];
-            // Re-save to ensure only one exists
+            
             store.put(firstStory);
           }
         }
@@ -426,13 +393,11 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * Filter stories by date range or other criteria (works with array)
-   */
+  
   filterStories(stories, filters = {}) {
     let filtered = [...stories];
 
-    // Filter by date range
+    
     if (filters.startDate) {
       const start = new Date(filters.startDate).getTime();
       filtered = filtered.filter((story) => {
@@ -449,7 +414,7 @@ class IndexedDBService {
       });
     }
 
-    // Filter by name (if needed)
+    
     if (filters.name) {
       const nameTerm = filters.name.toLowerCase();
       filtered = filtered.filter((story) =>
@@ -461,7 +426,7 @@ class IndexedDBService {
   }
 }
 
-// Export singleton instance
+
 const indexedDBService = new IndexedDBService();
 
 export default indexedDBService;

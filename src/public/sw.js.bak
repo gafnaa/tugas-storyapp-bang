@@ -1,4 +1,4 @@
-
+// Service Worker untuk PWA dan Push Notification
 const CACHE_NAME = 'story-app-v3';
 const API_CACHE_NAME = 'story-app-api-v3';
 const urlsToCache = [
@@ -10,12 +10,12 @@ const urlsToCache = [
   '/manifest.json'
 ];
 
-
+// Install event - cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        
+        // Try to add all resources, but don't fail if some fail
         return Promise.allSettled(
           urlsToCache.map(url => 
             cache.add(url).catch(err => {
@@ -28,7 +28,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -44,21 +44,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-
+// Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  
+  // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
 
-  
+  // Don't cache HTML files - always fetch fresh to get latest version
   if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(request).catch(() => {
-        
+        // If network fails, try cache as fallback
         return caches.match(request).then(cachedResponse => {
           return cachedResponse || caches.match('/');
         });
@@ -67,7 +67,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  
+  // Handle API requests with NetworkFirst strategy
   if (url.pathname.startsWith('/v1/') || url.hostname === 'story-api.dicoding.dev') {
     event.respondWith(
       networkFirstStrategy(request)
@@ -75,7 +75,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  
+  // Handle app shell resources with CacheFirst strategy
   if (url.origin === self.location.origin) {
     event.respondWith(
       cacheFirstStrategy(request)
@@ -83,41 +83,41 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  
+  // For external resources (CDN, fonts), use NetworkFirst
   event.respondWith(
     networkFirstStrategy(request, CACHE_NAME)
   );
 });
 
-
+// NetworkFirst strategy: Try network first, fallback to cache
 async function networkFirstStrategy(request, cacheName = API_CACHE_NAME) {
   const cache = await caches.open(cacheName);
   
-  
-  
+  // Create a cache key without Authorization header for API requests
+  // This allows cached data to be available even if token changes
   const cacheKey = request.url.includes('story-api.dicoding.dev') 
     ? new Request(request.url, { method: 'GET' })
     : request;
   
   try {
-    
+    // Try to fetch from network first
     const networkResponse = await fetch(request);
     
-    
+    // If successful, cache the response using cacheKey (without auth headers)
     if (networkResponse.ok && request.method === 'GET') {
       cache.put(cacheKey, networkResponse.clone());
     }
     
     return networkResponse;
   } catch (error) {
-    
+    // Network failed, try to get from cache
     const cachedResponse = await cache.match(cacheKey);
     
     if (cachedResponse) {
       return cachedResponse;
     }
     
-    
+    // If no cache and it's an API request, return a meaningful offline response
     if (request.url.includes('story-api.dicoding.dev')) {
       return new Response(
         JSON.stringify({
@@ -135,12 +135,12 @@ async function networkFirstStrategy(request, cacheName = API_CACHE_NAME) {
       );
     }
     
-    
+    // For other requests, throw the error
     throw error;
   }
 }
 
-
+// CacheFirst strategy: Try cache first, fallback to network
 async function cacheFirstStrategy(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
@@ -158,7 +158,7 @@ async function cacheFirstStrategy(request) {
     
     return networkResponse;
   } catch (error) {
-    
+    // If network fails and no cache, return offline page for HTML requests
     if (request.headers.get('accept')?.includes('text/html')) {
       return cache.match('/');
     }
@@ -166,7 +166,7 @@ async function cacheFirstStrategy(request) {
   }
 }
 
-
+// Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'Story Notification',
@@ -176,12 +176,12 @@ self.addEventListener('push', (event) => {
     data: {}
   };
 
-  
+  // Parse notification data if available
   if (event.data) {
     try {
       const data = event.data.json();
       
-      
+      // Extract story ID from data if available
       let storyId = null;
       if (data.data && data.data.storyId) {
         storyId = data.data.storyId;
@@ -200,12 +200,12 @@ self.addEventListener('push', (event) => {
         }
       };
     } catch (e) {
-      
+      // If data is not JSON, use as text
       const textData = event.data.text();
       notificationData.body = textData || notificationData.body;
       
-      
-      
+      // Try to extract story ID from text if it contains a pattern
+      // This is a fallback if the server sends story ID in the body
       const storyIdMatch = textData.match(/story[_-]?id[:\s]+([a-zA-Z0-9_-]+)/i);
       if (storyIdMatch) {
         notificationData.data.storyId = storyIdMatch[1];
@@ -240,30 +240,30 @@ self.addEventListener('push', (event) => {
   );
 });
 
-
+// Notification click event - handle user interaction
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const action = event.action;
   const notificationData = event.notification.data || {};
 
-  
+  // Handle different actions
   if (action === 'close') {
     return;
   }
 
-  
+  // Default action or 'view' action - navigate to story detail
   const storyId = notificationData.storyId;
   const urlToOpen = '/';
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        
+        // Try to find an existing window
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
           if (client.url.includes('/') && 'focus' in client) {
-            
+            // Navigate to home and send message with story ID
             client.focus();
             if (storyId) {
               client.postMessage({
@@ -274,11 +274,11 @@ self.addEventListener('notificationclick', (event) => {
             return;
           }
         }
-        
+        // If no window found, open a new one
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen).then((client) => {
             if (client && storyId) {
-              
+              // Wait a bit for the page to load, then send message
               setTimeout(() => {
                 client.postMessage({
                   type: 'SHOW_STORY_DETAIL',
@@ -292,7 +292,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-
+// Message event - handle messages from main thread
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

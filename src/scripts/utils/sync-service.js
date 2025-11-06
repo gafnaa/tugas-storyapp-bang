@@ -1,7 +1,4 @@
-/**
- * Sync Service for Offline Data Synchronization
- * Handles syncing offline data to server when connection is restored
- */
+
 
 import ApiService from "../data/api";
 import indexedDBService from "./indexeddb-service";
@@ -13,9 +10,7 @@ class SyncService {
     this.setupEventListeners();
   }
 
-  /**
-   * Setup online/offline event listeners
-   */
+  
   setupEventListeners() {
     window.addEventListener("online", () => {
       this.isOnline = true;
@@ -28,25 +23,21 @@ class SyncService {
       console.log("Connection lost, working offline...");
     });
 
-    // Try to sync on page load if online
+    
     if (this.isOnline) {
-      // Wait a bit for IndexedDB to initialize
+      
       setTimeout(() => {
         this.syncPendingData();
       }, 2000);
     }
   }
 
-  /**
-   * Check if device is online
-   */
+  
   isDeviceOnline() {
     return navigator.onLine;
   }
 
-  /**
-   * Add story to sync queue (for offline creation)
-   */
+  
   async queueStoryForSync(storyData) {
     try {
       await indexedDBService.addToSyncQueue("create", storyData);
@@ -58,9 +49,7 @@ class SyncService {
     }
   }
 
-  /**
-   * Sync pending data to server
-   */
+  
   async syncPendingData() {
     if (this.syncInProgress) {
       console.log("Sync already in progress");
@@ -93,10 +82,10 @@ class SyncService {
           if (item.action === "create") {
             const storyData = item.data;
             
-            // Convert base64 photo back to Blob
+            
             let photoBlob;
             if (storyData.photo && typeof storyData.photo === "string") {
-              // Base64 string
+              
               const byteCharacters = atob(storyData.photo);
               const byteNumbers = new Array(byteCharacters.length);
               for (let i = 0; i < byteCharacters.length; i++) {
@@ -108,7 +97,7 @@ class SyncService {
               photoBlob = storyData.photo;
             }
 
-            // Prepare data for API
+            
             const apiData = {
               description: storyData.description,
               photo: photoBlob,
@@ -121,11 +110,11 @@ class SyncService {
             results.success++;
             console.log("Successfully synced story:", item.id);
           }
-          // Add other actions here (update, delete) if needed
+          
         } catch (error) {
           console.error(`Failed to sync item ${item.id}:`, error);
           results.failed++;
-          // Don't mark as synced if it failed
+          
         }
       }
 
@@ -133,10 +122,10 @@ class SyncService {
         `Sync completed: ${results.success} succeeded, ${results.failed} failed`
       );
 
-      // Clean up synced items
+      
       await indexedDBService.clearSyncedItems();
 
-      // Show notification if there were results
+      
       if (results.success > 0) {
         this.showSyncNotification(
           `Berhasil menyinkronkan ${results.success} cerita`
@@ -156,11 +145,9 @@ class SyncService {
     }
   }
 
-  /**
-   * Show sync notification
-   */
+  
   showSyncNotification(message, type = "success") {
-    // Create notification element
+    
     const notification = document.createElement("div");
     const bgColor =
       type === "success"
@@ -183,7 +170,7 @@ class SyncService {
     `;
     notification.textContent = message;
 
-    // Add animation
+    
     const style = document.createElement("style");
     style.textContent = `
       @keyframes slideIn {
@@ -201,7 +188,7 @@ class SyncService {
 
     document.body.appendChild(notification);
 
-    // Remove after 3 seconds
+    
     setTimeout(() => {
       notification.style.animation = "slideIn 0.3s ease reverse";
       setTimeout(() => {
@@ -211,9 +198,7 @@ class SyncService {
     }, 3000);
   }
 
-  /**
-   * Manual sync trigger (can be called from UI)
-   */
+  
   async manualSync() {
     if (!this.isDeviceOnline()) {
       this.showSyncNotification("Tidak ada koneksi internet", "error");
@@ -226,7 +211,7 @@ class SyncService {
   }
 }
 
-// Export singleton instance
+
 const syncService = new SyncService();
 
 export default syncService;

@@ -242,7 +242,7 @@ form button {
   background-color: #45a049;
 }
 
-/* IndexedDB Toggle Button Styles */
+
 .toggle-view-btn {
   display: inline-block !important;
   visibility: visible !important;
@@ -541,7 +541,7 @@ form button {
   }
 }
 
-/* Story Detail Page Styles */
+
 .story-detail-card {
   animation: fadeIn 0.3s ease-in;
 }
@@ -564,7 +564,7 @@ form button {
   background-color: #4338ca !important;
 }
 
-/* Load More Button Styles */
+
 #load-more-btn:hover {
   background-color: #4338ca !important;
   transform: translateY(-1px);

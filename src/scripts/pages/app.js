@@ -123,7 +123,7 @@ class App {
     if (routes[url]) {
       page = routes[url];
     } else if (url.startsWith("/story/")) {
-      // Handle story detail route
+      
       page = routes["/story/:id"];
     } else {
       page = loggedIn ? routes["/"] : routes["/login"];
