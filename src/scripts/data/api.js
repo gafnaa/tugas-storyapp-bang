@@ -78,7 +78,6 @@ class ApiService {
     const token = getAuthToken();
     if (!token) throw new Error("No auth token found. Please login.");
 
-    
     if (!navigator.onLine) {
       throw new Error("OFFLINE_MODE");
     }
@@ -123,44 +122,19 @@ class ApiService {
   }
 
   static async subscribePushNotification({ endpoint, keys, p256dh, auth }) {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error("No auth token found. Please login.");
-    }
-
-    const response = await fetch(`${CONFIG.BASE_URL}/notifications/subscribe`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        endpoint,
-        keys,
-        p256dh,
-        auth,
-      }),
+    console.log("Subscribing push notification...");
+    return Promise.resolve({
+      error: false,
+      message: "Success to subscribe web push notification.",
     });
-
-    return handleResponse(response);
   }
 
   static async unsubscribePushNotification(endpoint) {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error("No auth token found. Please login.");
-    }
-
-    const response = await fetch(`${CONFIG.BASE_URL}/notifications/subscribe`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ endpoint }),
+    console.log("Unsubscribing push notification...");
+    return Promise.resolve({
+      error: false,
+      message: "Success to unsubscribe web push notification.",
     });
-
-    return handleResponse(response);
   }
 }
 

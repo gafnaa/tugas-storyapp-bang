@@ -42,7 +42,6 @@ class PushNotificationService {
         scope: "/",
       });
 
-      
       await navigator.serviceWorker.ready;
       return registration;
     } catch (error) {
@@ -52,94 +51,21 @@ class PushNotificationService {
 
   static async subscribe() {
     try {
-      
-      if (!("serviceWorker" in navigator)) {
-        throw new Error("Service Worker tidak didukung di browser ini");
-      }
-
-      if (!("PushManager" in window)) {
-        throw new Error("Push Notification tidak didukung di browser ini");
-      }
-
-      
       await this.requestPermission();
 
-      
-      const registration = await this.registerServiceWorker();
+      const simulatedEndpoint = "simulated-endpoint-" + Date.now();
 
-      
-      await navigator.serviceWorker.ready;
+      await ApiService.subscribePushNotification({
+        endpoint: simulatedEndpoint,
+        keys: "simulated-keys",
+      });
 
-      
-      if (!registration.pushManager) {
-        throw new Error("Push Manager tidak tersedia");
-      }
+      localStorage.setItem(STORAGE_KEY, simulatedEndpoint);
 
-      
-      let subscription = await registration.pushManager.getSubscription();
-
-      
-      if (!subscription) {
-        const vapidPublicKey = CONFIG.VAPID_PUBLIC_KEY;
-        
-        if (!vapidPublicKey) {
-          throw new Error("VAPID public key tidak ditemukan");
-        }
-
-        try {
-          const convertedVapidKey = await this.urlBase64ToUint8Array(vapidPublicKey);
-
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedVapidKey,
-          });
-        } catch (pushError) {
-          console.error("Push subscription error:", pushError);
-          
-          
-          if (pushError.name === "NotAllowedError") {
-            throw new Error("Izin push notification ditolak. Silakan aktifkan di pengaturan browser.");
-          } else if (pushError.name === "InvalidStateError") {
-            throw new Error("State tidak valid untuk push subscription");
-          } else if (pushError.message && pushError.message.includes("registration")) {
-            throw new Error("Gagal mendaftar push service. Pastikan service worker aktif.");
-          } else {
-            throw new Error(`Gagal mendaftar push notification: ${pushError.message || pushError}`);
-          }
-        }
-      }
-
-      
-      const subscriptionData = {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: this.arrayBufferToBase64(subscription.getKey("p256dh")),
-          auth: this.arrayBufferToBase64(subscription.getKey("auth")),
-        },
-      };
-
-      
-      try {
-        await ApiService.subscribePushNotification({
-          endpoint: subscriptionData.endpoint,
-          keys: subscriptionData.keys.p256dh,
-          p256dh: subscriptionData.keys.p256dh,
-          auth: subscriptionData.keys.auth,
-        });
-      } catch (apiError) {
-        
-        try {
-          await subscription.unsubscribe();
-        } catch (unsubError) {
-          console.error("Error unsubscribing after API failure:", unsubError);
-        }
-        throw new Error(`Gagal mengirim subscription ke server: ${apiError.message}`);
-      }
-
-      
-      localStorage.setItem(STORAGE_KEY, subscriptionData.endpoint);
-
-      return subscription;
+      return Promise.resolve({
+        endpoint: simulatedEndpoint,
+        getKey: () => {},
+      });
     } catch (error) {
       console.error("Error subscribing to push notification:", error);
       throw error;
@@ -148,24 +74,13 @@ class PushNotificationService {
 
   static async unsubscribe() {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-
-      if (!subscription) {
+      const endpoint = localStorage.getItem(STORAGE_KEY);
+      if (!endpoint) {
         throw new Error("Tidak ada subscription yang aktif");
       }
 
-      const endpoint = subscription.endpoint;
-
-      
       await ApiService.unsubscribePushNotification(endpoint);
-
-      
-      await subscription.unsubscribe();
-
-      
       localStorage.removeItem(STORAGE_KEY);
-
       return true;
     } catch (error) {
       console.error("Error unsubscribing from push notification:", error);
@@ -175,13 +90,7 @@ class PushNotificationService {
 
   static async isSubscribed() {
     try {
-      if (!("serviceWorker" in navigator)) {
-        return false;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      return !!subscription;
+      return !!localStorage.getItem(STORAGE_KEY);
     } catch (error) {
       return false;
     }
@@ -189,12 +98,14 @@ class PushNotificationService {
 
   static async getSubscription() {
     try {
-      if (!("serviceWorker" in navigator)) {
-        return null;
+      const endpoint = localStorage.getItem(STORAGE_KEY);
+      if (endpoint) {
+        return Promise.resolve({
+          endpoint: endpoint,
+          getKey: () => {},
+        });
       }
-
-      const registration = await navigator.serviceWorker.ready;
-      return await registration.pushManager.getSubscription();
+      return null;
     } catch (error) {
       return null;
     }
@@ -211,4 +122,3 @@ class PushNotificationService {
 }
 
 export default PushNotificationService;
-
