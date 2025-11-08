@@ -1,4 +1,4 @@
-import CONFIG from "../config";
+import CONFIG from "/scripts/config.js";
 import ApiService from "../data/api";
 
 const STORAGE_KEY = "push_subscription_endpoint";
@@ -9,10 +9,8 @@ class PushNotificationService {
     const base64 = (base64String + padding)
       .replace(/\-/g, "+")
       .replace(/_/g, "/");
-
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
@@ -23,12 +21,10 @@ class PushNotificationService {
     if (!("Notification" in window)) {
       throw new Error("Browser tidak mendukung notifikasi");
     }
-
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Izin notifikasi ditolak");
     }
-
     return permission;
   }
 
@@ -36,12 +32,10 @@ class PushNotificationService {
     if (!("serviceWorker" in navigator)) {
       throw new Error("Service Worker tidak didukung");
     }
-
     try {
       const registration = await navigator.serviceWorker.register("/sw.js", {
         scope: "/",
       });
-
       await navigator.serviceWorker.ready;
       return registration;
     } catch (error) {
@@ -51,35 +45,86 @@ class PushNotificationService {
 
   static async subscribe() {
     try {
+      if (!("serviceWorker" in navigator)) {
+        throw new Error("Service Worker tidak didukung di browser ini");
+      }
+      if (!("PushManager" in window)) {
+        throw new Error("Push Notification tidak didukung di browser ini");
+      }
+
       await this.requestPermission();
+      const registration = await navigator.serviceWorker.ready;
 
-      const simulatedEndpoint = "simulated-endpoint-" + Date.now();
+      if (!registration.pushManager) {
+        throw new Error("Push Manager tidak tersedia");
+      }
 
-      await ApiService.subscribePushNotification({
-        endpoint: simulatedEndpoint,
-        keys: "simulated-keys",
-      });
+      let subscription = await registration.pushManager.getSubscription();
 
-      localStorage.setItem(STORAGE_KEY, simulatedEndpoint);
+      if (!subscription) {
+        const vapidPublicKey = CONFIG.VAPID_PUBLIC_KEY;
+        if (!vapidPublicKey) {
+          throw new Error("VAPID public key tidak ditemukan");
+        }
+        try {
+          const convertedVapidKey = await this.urlBase64ToUint8Array(
+            vapidPublicKey
+          );
 
-      return Promise.resolve({
-        endpoint: simulatedEndpoint,
-        getKey: () => {},
-      });
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+        } catch (pushError) {
+          console.error("Push subscription error:", pushError);
+          throw new Error(
+            `Gagal mendaftar push notification: ${
+              pushError.message || pushError
+            }`
+          );
+        }
+      }
+
+      const keysObject = {
+        p256dh: this.arrayBufferToBase64(subscription.getKey("p256dh")),
+        auth: this.arrayBufferToBase64(subscription.getKey("auth")),
+      };
+
+      try {
+        await ApiService.subscribePushNotification({
+          endpoint: subscription.endpoint,
+          keys: keysObject,
+        });
+      } catch (apiError) {
+        try {
+          await subscription.unsubscribe();
+        } catch (unsubError) {
+          console.error("Error unsubscribing after API failure:", unsubError);
+        }
+
+        throw new Error(
+          `Gagal mengirim subscription ke server: ${apiError.message}`
+        );
+      }
+
+      localStorage.setItem(STORAGE_KEY, subscription.endpoint);
+      return subscription;
     } catch (error) {
-      console.error("Error subscribing to push notification:", error);
+      console.error("Error in subscribe main function:", error);
       throw error;
     }
   }
 
   static async unsubscribe() {
     try {
-      const endpoint = localStorage.getItem(STORAGE_KEY);
-      if (!endpoint) {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
         throw new Error("Tidak ada subscription yang aktif");
       }
-
+      const endpoint = subscription.endpoint;
       await ApiService.unsubscribePushNotification(endpoint);
+      await subscription.unsubscribe();
       localStorage.removeItem(STORAGE_KEY);
       return true;
     } catch (error) {
@@ -90,7 +135,12 @@ class PushNotificationService {
 
   static async isSubscribed() {
     try {
-      return !!localStorage.getItem(STORAGE_KEY);
+      if (!("serviceWorker" in navigator)) {
+        return false;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      return !!subscription;
     } catch (error) {
       return false;
     }
@@ -98,14 +148,11 @@ class PushNotificationService {
 
   static async getSubscription() {
     try {
-      const endpoint = localStorage.getItem(STORAGE_KEY);
-      if (endpoint) {
-        return Promise.resolve({
-          endpoint: endpoint,
-          getKey: () => {},
-        });
+      if (!("serviceWorker" in navigator)) {
+        return null;
       }
-      return null;
+      const registration = await navigator.serviceWorker.ready;
+      return await registration.pushManager.getSubscription();
     } catch (error) {
       return null;
     }
